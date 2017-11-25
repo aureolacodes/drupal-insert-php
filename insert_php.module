@@ -24,13 +24,13 @@ function insert_php_filter_info() {
 function _insert_php_filter_process($text, $filter) {
   $pattern = '/\[(theme|module):([\w]+):([\w\.\/-]+)\]/';
   if (preg_match_all($pattern, $text, $matches)) {
-    foreach ($matches as $i => $match) {
+    foreach ($matches[0] as $i => $match) {
       $match_type = $matches[1][$i];
       $match_name = $matches[2][$i];
       $match_file = str_replace('/', DIRECTORY_SEPARATOR, $matches[3][$i]);
 
       $file_dir = drupal_get_path($match_type, $match_name);
-      $file_path = $file_dir . DIRECTORY_SEPARATOR . $match_file;
+      $file_path = $file_dir . DIRECTORY_SEPARATOR . $match_file . '.inc';
 
       if (file_exists($file_path)) {
         $file_dir_real = dirname($file_path);
@@ -38,7 +38,7 @@ function _insert_php_filter_process($text, $filter) {
           ob_start();
           include $file_path;
           $replacement = ob_get_contents();
-          ob_end_flush();
+          ob_end_clean();
 
           $text = str_replace($match, $replacement, $text);
         }
