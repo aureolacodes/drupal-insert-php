@@ -1,0 +1,5 @@
+name = Insert PHP
+description = Adds an input filter for the inclusion of php files.
+package = "Input filters"
+dependencies[] = filter
+core = 7.x

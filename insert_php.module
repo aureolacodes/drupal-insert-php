@@ -1,0 +1,73 @@
+<?php
+/**
+ * @file
+ * Adds an input filter for the inclusion of php files.
+ */
+
+/**
+ * Implements hook_filter_info().
+ */
+function insert_php_filter_info() {
+  $filters = array();
+  $filters['insert_php'] = array(
+    'title' => t('Insert PHP files'),
+    'process callback' => '_insert_php_filter_process',
+    'tips callback' => '_insert_php_filter_tips',
+  );
+
+  return $filters;
+}
+
+/**
+ * @see insert_php_filter_info()
+ */
+function _insert_php_filter_process($text, $filter) {
+  $pattern = '/\[(theme|module):([\w]+):([\w\.\/-]+)\]/';
+  if (preg_match_all($pattern, $text, $matches)) {
+    foreach ($matches as $i => $match) {
+      $match_type = $matches[1][$i];
+      $match_name = $matches[2][$i];
+      $match_file = str_replace('/', DIRECTORY_SEPARATOR, $matches[3][$i]);
+
+      $file_dir = drupal_get_path($match_type, $match_name);
+      $file_path = $file_dir . DIRECTORY_SEPARATOR . $match_file;
+
+      if (file_exists($file_path)) {
+        $file_dir_real = dirname($file_path);
+        if (strpos($file_dir_real, $file_dir) !== FALSE) {
+          ob_start();
+          include $file_path;
+          $replacement = ob_get_contents();
+          ob_end_flush();
+
+          $text = str_replace($match, $replacement, $text);
+        }
+        else {
+          watchdog('insert_php', 'File path not allowed: %match', array(
+            '%match' => $match,
+          ), WATCHDOG_ERROR);
+        }
+      }
+      else {
+        watchdog('insert_php', 'File does not exists: %match', array(
+          '%match' => $match,
+        ), WATCHDOG_ERROR);
+      }
+    }
+  }
+
+  return $text;
+}
+
+/**
+ * @see insert_php_filter_info()
+ */
+function _insert_php_filter_tips($filter, $format, $long = FALSE) {
+  $tips = t('To insert a php file use %theme_pattern or %module_pattern. (E.g. %example_pattern)', array(
+    '%theme_pattern' => '[theme:THEME_NAME:FILE_NAME]',
+    '%module_pattern' => '[module:MODULE_NAME:FILE_NAME]',
+    '%example_pattern' => '[module:insert_php:inc/insert_php.example.inc]',
+  ));
+
+  return $tips;
+}
